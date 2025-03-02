@@ -25,9 +25,9 @@
     const canvas = document.getElementById('gameCanvas');
     const ctx = canvas.getContext('2d');
 
-    // キャラクターの画像をロード（外部ファイル）
+    // キャラクター画像のロード
     const characterImg = new Image();
-    characterImg.src = 'profile.jpg'; // 画像パスを指定
+    characterImg.src = 'character.jpg'; // 画像パスを指定
 
     let character = {
       x: canvas.width / 2,
@@ -36,44 +36,65 @@
     };
 
     let bubbles = [];
-    let bubbleSpawnRate = 100;
+    let bubbleSpawnRate = 100; // 泡の生成間隔（初期値）
+    let frameCount = 0;
     let score = 0;
+    let gameState = 'countdown'; // 初期状態: カウントダウン
+    let countdown = 3;
+    let countdownTimer = null;
     let gameStarted = false;
     let gameOverState = false;
     let isTouching = false;
 
-    // タッチイベントでキャラクターを移動
+    // タッチイベント
     canvas.addEventListener('touchstart', (e) => {
       e.preventDefault();
-      if (gameOverState) {
+      if (gameState === 'countdown') {
+        startCountdown();
+      } else if (gameOverState) {
         let touchX = e.touches[0].clientX - canvas.offsetLeft;
         let touchY = e.touches[0].clientY - canvas.offsetTop;
         if (touchX > canvas.width / 2 - 80 && touchX < canvas.width / 2 + 80 &&
             touchY > canvas.height / 2 + 50 && touchY < canvas.height / 2 + 100) {
           resetGame();
         }
-      } else {
+      } else if (gameState === 'playing') {
         isTouching = true;
-        startGame();
         moveCharacter(e.touches[0]);
       }
     });
 
     canvas.addEventListener('touchmove', (e) => {
       e.preventDefault();
-      moveCharacter(e.touches[0]);
+      if (gameState === 'playing') {
+        moveCharacter(e.touches[0]);
+      }
     });
 
     canvas.addEventListener('touchend', () => {
-      isTouching = false;
-      if (!gameOverState) {
-        gameOver();
+      if (gameState === 'playing') {
+        isTouching = false;
+        if (!gameOverState) {
+          gameOver();
+        }
       }
     });
 
     function moveCharacter(touch) {
       character.x = touch.clientX - canvas.offsetLeft;
       character.y = touch.clientY - canvas.offsetTop;
+    }
+
+    // カウントダウン開始
+    function startCountdown() {
+      countdownTimer = setInterval(() => {
+        countdown--;
+        if (countdown <= 0) {
+          clearInterval(countdownTimer);
+          gameState = 'playing';
+          startGame();
+        }
+      }, 1000);
     }
 
     // ゲーム開始
@@ -88,13 +109,13 @@
 
     // 泡やにんじんの生成
     function spawnBubble() {
-      if (Math.random() < 0.01) { // にんじんの確率
+      if (Math.random() < 0.01) { // にんじん（1%の確率）
         bubbles.push({
           x: Math.random() * canvas.width,
           y: -20,
           radius: 15,
           speedX: Math.random() * 2 - 1,
-          speedY: 2,
+          speedY: 1, // ゆっくりした落下速度
           isCarrot: true
         });
       } else {
@@ -103,7 +124,7 @@
           y: -20,
           radius: 15,
           speedX: Math.random() * 2 - 1,
-          speedY: 2,
+          speedY: 1, // ゆっくりした落下速度
           isCarrot: false
         });
       }
@@ -113,7 +134,7 @@
     function updateBubbles() {
       for (let i = bubbles.length - 1; i >= 0; i--) {
         let b = bubbles[i];
-        b.x += b.speedX + Math.sin(Date.now() * 0.001) * 2;
+        b.x += b.speedX + Math.sin(Date.now() * 0.001) * 2; // ふらふら動く
         b.y += b.speedY;
         if (b.y > canvas.height + b.radius) {
           bubbles.splice(i, 1);
@@ -156,6 +177,8 @@
       score = 0;
       bubbles = [];
       gameOverState = false;
+      gameState = 'countdown';
+      countdown = 3;
       character.x = canvas.width / 2;
       character.y = canvas.height / 2;
     }
@@ -180,8 +203,12 @@
       ctx.fillText(`スコア: ${score}`, 10, 30);
     }
 
-    function drawGameOver() {
-      if (gameOverState) {
+    function drawGameState() {
+      if (gameState === 'countdown') {
+        ctx.font = '50px Arial';
+        ctx.fillStyle = 'black';
+        ctx.fillText(countdown, canvas.width / 2 - 20, canvas.height / 2);
+      } else if (gameOverState) {
         ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
         ctx.fillRect(0, 0, canvas.width, canvas.height);
         ctx.fillStyle = 'white';
@@ -198,9 +225,12 @@
     // ゲームループ
     function gameLoop() {
       ctx.clearRect(0, 0, canvas.width, canvas.height);
+      frameCount++;
 
-      if (isTouching) {
-        spawnBubble();
+      if (gameState === 'playing' && isTouching) {
+        if (frameCount % bubbleSpawnRate === 0) {
+          spawnBubble();
+        }
         updateBubbles();
         checkCollisions();
         adjustDifficulty();
@@ -209,7 +239,7 @@
       drawCharacter();
       drawBubbles();
       drawScore();
-      drawGameOver();
+      drawGameState();
 
       requestAnimationFrame(gameLoop);
     }
