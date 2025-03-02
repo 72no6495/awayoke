@@ -11,7 +11,7 @@
       align-items: center;
       height: 100vh;
       margin: 0;
-      background-color: #ffe6f0; /* 薄ピンク色 */
+      background-color: #ffccd5; /* 少し濃いピンク */
     }
     canvas {
       border: 1px solid black;
@@ -20,14 +20,15 @@
 </head>
 <body>
   <canvas id="gameCanvas" width="400" height="600"></canvas>
+  <audio id="bgm" src="bgm.mp3" loop></audio> <!-- BGM追加 -->
 
   <script>
     const canvas = document.getElementById('gameCanvas');
     const ctx = canvas.getContext('2d');
+    const bgm = document.getElementById('bgm'); // BGM要素を取得
 
-    // キャラクター画像のロード
     const characterImg = new Image();
-    characterImg.src = 'profile.jpg'; // キャラクター画像を用意
+    characterImg.src = 'profile.jpg';
 
     let character = {
       x: canvas.width / 2,
@@ -36,16 +37,15 @@
     };
 
     let bubbles = [];
-    let bubbleSpawnRate = 100; // 泡の生成間隔
+    let bubbleSpawnRate = 100;
     let frameCount = 0;
     let score = 0;
-    let gameState = 'start'; // 初期状態: スタート画面
+    let gameState = 'start';
     let countdown = 3;
     let countdownTimer = null;
     let isTouching = false;
     let gameOverState = false;
 
-    // タッチイベント
     canvas.addEventListener('touchstart', (e) => {
       e.preventDefault();
       let touchX = e.touches[0].clientX - canvas.offsetLeft;
@@ -90,19 +90,18 @@
       character.y = touch.clientY - canvas.offsetTop;
     }
 
-    // カウントダウン開始
     function startCountdown() {
       countdownTimer = setInterval(() => {
         countdown--;
         if (countdown <= 0) {
           clearInterval(countdownTimer);
           gameState = 'playing';
+          bgm.play(); // ゲーム開始時にBGM再生
           startScoreTimer();
         }
       }, 1000);
     }
 
-    // スコアを増やすタイマー
     let scoreTimer = null;
     function startScoreTimer() {
       if (scoreTimer) clearInterval(scoreTimer);
@@ -113,7 +112,6 @@
       }, 1000);
     }
 
-    // 泡や金の泡の生成
     function spawnBubble() {
       if (Math.random() < 0.1) { // 金の泡（10%の確率）
         bubbles.push({
@@ -136,7 +134,6 @@
       }
     }
 
-    // 泡の更新
     function updateBubbles() {
       for (let i = bubbles.length - 1; i >= 0; i--) {
         let b = bubbles[i];
@@ -148,7 +145,6 @@
       }
     }
 
-    // 衝突判定
     function checkCollisions() {
       bubbles.forEach((b, index) => {
         let dx = character.x - b.x;
@@ -156,7 +152,7 @@
         let distance = Math.sqrt(dx * dx + dy * dy);
         if (distance < character.radius + b.radius) {
           if (b.isGoldenBubble) {
-            score += 200; // 金の泡で高得点
+            score += 200;
             bubbles.splice(index, 1);
           } else {
             gameOver();
@@ -165,21 +161,20 @@
       });
     }
 
-    // 難易度調整
     function adjustDifficulty() {
-      bubbleSpawnRate = Math.max(10, 100 - Math.floor(score / 50));
+      bubbleSpawnRate = Math.max(20, 100 - Math.floor(score / 500));
     }
 
-    // ゲームオーバー
     function gameOver() {
       if (!gameOverState) {
         gameOverState = true;
         isTouching = false;
         clearInterval(scoreTimer);
+        bgm.pause(); // ゲームオーバーでBGM停止
+        bgm.currentTime = 0; // 次回再生時に最初から
       }
     }
 
-    // 描画関数
     function drawCharacter() {
       ctx.drawImage(characterImg, character.x - character.radius, character.y - character.radius, character.radius * 2, character.radius * 2);
     }
@@ -241,7 +236,6 @@
       }
     }
 
-    // ゲームループ
     function gameLoop() {
       ctx.clearRect(0, 0, canvas.width, canvas.height);
       frameCount++;
