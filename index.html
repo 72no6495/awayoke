@@ -25,9 +25,9 @@
     const canvas = document.getElementById('gameCanvas');
     const ctx = canvas.getContext('2d');
 
-    // キャラクター画像のロード（実際の画像パスに変更してください）
+    // キャラクター画像のロード
     const characterImg = new Image();
-    characterImg.src = 'profile.jpg'; // キャラクター画像を用意
+    characterImg.src = 'character.jpg'; // キャラクター画像を用意
 
     let character = {
       x: canvas.width / 2,
@@ -52,19 +52,15 @@
       let touchY = e.touches[0].clientY - canvas.offsetTop;
 
       if (gameState === 'start') {
-        // スタートボタン
         if (touchX > canvas.width / 2 - 50 && touchX < canvas.width / 2 + 50 &&
             touchY > canvas.height / 2 - 25 && touchY < canvas.height / 2 + 25) {
           gameState = 'countdown';
           startCountdown();
-        }
-        // 遊び方ボタン
-        else if (touchX > canvas.width / 2 - 50 && touchX < canvas.width / 2 + 50 &&
-                 touchY > canvas.height / 2 + 35 && touchY < canvas.height / 2 + 85) {
+        } else if (touchX > canvas.width / 2 - 50 && touchX < canvas.width / 2 + 50 &&
+                  touchY > canvas.height / 2 + 35 && touchY < canvas.height / 2 + 85) {
           gameState = 'howToPlay';
         }
       } else if (gameState === 'howToPlay') {
-        // 閉じるボタン
         if (touchX > canvas.width / 2 - 50 && touchX < canvas.width / 2 + 50 &&
             touchY > canvas.height / 2 + 100 && touchY < canvas.height / 2 + 150) {
           gameState = 'start';
@@ -73,7 +69,6 @@
         isTouching = true;
         moveCharacter(e.touches[0]);
       } else if (gameOverState) {
-        // もう一回ボタン
         if (touchX > canvas.width / 2 - 80 && touchX < canvas.width / 2 + 80 &&
             touchY > canvas.height / 2 + 50 && touchY < canvas.height / 2 + 100) {
           resetGame();
@@ -107,13 +102,25 @@
         if (countdown <= 0) {
           clearInterval(countdownTimer);
           gameState = 'playing';
+          startScoreTimer(); // スコアタイマーを開始
+        }
+      }, 1000);
+    }
+
+    // スコアを増やすタイマー
+    let scoreTimer = null;
+    function startScoreTimer() {
+      if (scoreTimer) clearInterval(scoreTimer);
+      scoreTimer = setInterval(() => {
+        if (gameState === 'playing' && isTouching) {
+          score += 10;
         }
       }, 1000);
     }
 
     // 泡や金の泡の生成
     function spawnBubble() {
-      if (Math.random() < 0.01) { // 金の泡（1%の確率）
+      if (Math.random() < 0.0333) { // 金の泡（約3.33%の確率）
         bubbles.push({
           x: Math.random() * canvas.width,
           y: -20,
@@ -173,6 +180,7 @@
       if (!gameOverState) {
         gameOverState = true;
         isTouching = false;
+        clearInterval(scoreTimer); // スコアタイマーを停止
       }
     }
 
@@ -209,6 +217,10 @@
 
     function drawGameState() {
       if (gameState === 'start') {
+        // ゲームタイトル
+        ctx.font = '30px Arial';
+        ctx.fillStyle = 'black';
+        ctx.fillText('泡よけゲーム！', canvas.width / 2 - 100, canvas.height / 2 - 100);
         // スタートボタン
         ctx.fillStyle = 'green';
         ctx.fillRect(canvas.width / 2 - 50, canvas.height / 2 - 25, 100, 50);
@@ -221,7 +233,6 @@
         ctx.fillStyle = 'white';
         ctx.fillText('遊び方', canvas.width / 2 - 30, canvas.height / 2 + 65);
       } else if (gameState === 'howToPlay') {
-        // 遊び方説明
         ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
         ctx.fillRect(0, 0, canvas.width, canvas.height);
         ctx.fillStyle = 'white';
@@ -231,7 +242,6 @@
         ctx.fillText('2. タッチでキャラクターを動かす', canvas.width / 2 - 150, canvas.height / 2 - 20);
         ctx.fillText('3. 泡を避け、金の泡を取る', canvas.width / 2 - 150, canvas.height / 2 + 10);
         ctx.fillText('4. 指を離すとゲームオーバー', canvas.width / 2 - 150, canvas.height / 2 + 40);
-        // 閉じるボタン
         ctx.fillStyle = 'red';
         ctx.fillRect(canvas.width / 2 - 50, canvas.height / 2 + 100, 100, 50);
         ctx.fillStyle = 'white';
@@ -268,7 +278,7 @@
         adjustDifficulty();
       }
 
-      if (gameState === 'playing' || gameState === 'gameOver') {
+      if (gameState === 'playing' || gameOverState) {
         drawCharacter();
         drawBubbles();
         drawScore();
