@@ -11,7 +11,7 @@
       align-items: center;
       height: 100vh;
       margin: 0;
-      background-color: #ffccd5; /* 少し濃いピンク */
+      background-color: #fbfdfd; 
     }
     canvas {
       border: 1px solid black;
@@ -217,7 +217,7 @@
         ctx.fillText('1. スタートを押してゲーム開始', canvas.width / 2 - 150, canvas.height / 2 - 50);
         ctx.fillText('2. タッチでキャラクターを動かす', canvas.width / 2 - 150, canvas.height / 2 - 20);
         ctx.fillText('3. 泡を避け、金の泡を取る', canvas.width / 2 - 150, canvas.height / 2 + 10);
-        ctx.fillText('4. 指を離すとゲームオーバー', canvas.width / 2 - 150, canvas.height / 2 + 40);
+        ctx.fillText('4. 泡に当たるか指を離すとゲームオーバー', canvas.width / 2 - 150, canvas.height / 2 + 40);
         ctx.fillStyle = 'red';
         ctx.fillRect(canvas.width / 2 - 50, canvas.height / 2 + 100, 100, 50);
         ctx.fillStyle = 'white';
