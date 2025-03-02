@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>泡よけ</title>
+  <style>
+    body {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      margin: 0;
+      background-color: #f0f8ff;
+    }
+    canvas {
+      border: 1px solid black;
+    }
+  </style>
+</head>
+<body>
+  <canvas id="gameCanvas" width="400" height="600"></canvas>
+
+  <script>
+    const canvas = document.getElementById('gameCanvas');
+    const ctx = canvas.getContext('2d');
+
+    // キャラクターの画像をロード（外部ファイル）
+    const characterImg = new Image();
+    characterImg.src = 'character.jpg'; // 画像パスを指定
+
+    let character = {
+      x: canvas.width / 2,
+      y: canvas.height / 2,
+      radius: 20
+    };
+
+    let bubbles = [];
+    let bubbleSpawnRate = 100;
+    let score = 0;
+    let gameStarted = false;
+    let gameOverState = false;
+    let isTouching = false;
+
+    // タッチイベントでキャラクターを移動
+    canvas.addEventListener('touchstart', (e) => {
+      e.preventDefault();
+      if (gameOverState) {
+        let touchX = e.touches[0].clientX - canvas.offsetLeft;
+        let touchY = e.touches[0].clientY - canvas.offsetTop;
+        if (touchX > canvas.width / 2 - 80 && touchX < canvas.width / 2 + 80 &&
+            touchY > canvas.height / 2 + 50 && touchY < canvas.height / 2 + 100) {
+          resetGame();
+        }
+      } else {
+        isTouching = true;
+        startGame();
+        moveCharacter(e.touches[0]);
+      }
+    });
+
+    canvas.addEventListener('touchmove', (e) => {
+      e.preventDefault();
+      moveCharacter(e.touches[0]);
+    });
+
+    canvas.addEventListener('touchend', () => {
+      isTouching = false;
+      if (!gameOverState) {
+        gameOver();
+      }
+    });
+
+    function moveCharacter(touch) {
+      character.x = touch.clientX - canvas.offsetLeft;
+      character.y = touch.clientY - canvas.offsetTop;
+    }
+
+    // ゲーム開始
+    function startGame() {
+      if (!gameStarted) {
+        gameStarted = true;
+        setInterval(() => {
+          if (isTouching) score += 10;
+        }, 1000);
+      }
+    }
+
+    // 泡やにんじんの生成
+    function spawnBubble() {
+      if (Math.random() < 0.01) { // にんじんの確率
+        bubbles.push({
+          x: Math.random() * canvas.width,
+          y: -20,
+          radius: 15,
+          speedX: Math.random() * 2 - 1,
+          speedY: 2,
+          isCarrot: true
+        });
+      } else {
+        bubbles.push({
+          x: Math.random() * canvas.width,
+          y: -20,
+          radius: 15,
+          speedX: Math.random() * 2 - 1,
+          speedY: 2,
+          isCarrot: false
+        });
+      }
+    }
+
+    // 泡の更新
+    function updateBubbles() {
+      for (let i = bubbles.length - 1; i >= 0; i--) {
+        let b = bubbles[i];
+        b.x += b.speedX + Math.sin(Date.now() * 0.001) * 2;
+        b.y += b.speedY;
+        if (b.y > canvas.height + b.radius) {
+          bubbles.splice(i, 1);
+        }
+      }
+    }
+
+    // 衝突判定
+    function checkCollisions() {
+      bubbles.forEach((b, index) => {
+        let dx = character.x - b.x;
+        let dy = character.y - b.y;
+        let distance = Math.sqrt(dx * dx + dy * dy);
+        if (distance < character.radius + b.radius) {
+          if (b.isCarrot) {
+            score += 200;
+            bubbles.splice(index, 1);
+          } else {
+            gameOver();
+          }
+        }
+      });
+    }
+
+    // 難易度調整
+    function adjustDifficulty() {
+      bubbleSpawnRate = Math.max(20, 100 - Math.floor(score / 100));
+    }
+
+    // ゲームオーバー
+    function gameOver() {
+      if (!gameOverState) {
+        gameOverState = true;
+        isTouching = false;
+      }
+    }
+
+    // リセット
+    function resetGame() {
+      score = 0;
+      bubbles = [];
+      gameOverState = false;
+      character.x = canvas.width / 2;
+      character.y = canvas.height / 2;
+    }
+
+    // 描画
+    function drawCharacter() {
+      ctx.drawImage(characterImg, character.x - character.radius, character.y - character.radius, character.radius * 2, character.radius * 2);
+    }
+
+    function drawBubbles() {
+      bubbles.forEach(b => {
+        ctx.beginPath();
+        ctx.arc(b.x, b.y, b.radius, 0, Math.PI * 2);
+        ctx.fillStyle = b.isCarrot ? 'orange' : 'lightblue';
+        ctx.fill();
+      });
+    }
+
+    function drawScore() {
+      ctx.font = '20px Arial';
+      ctx.fillStyle = 'black';
+      ctx.fillText(`スコア: ${score}`, 10, 30);
+    }
+
+    function drawGameOver() {
+      if (gameOverState) {
+        ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        ctx.fillStyle = 'white';
+        ctx.font = '30px Arial';
+        ctx.fillText(`ゲームオーバー`, canvas.width / 2 - 100, canvas.height / 2 - 50);
+        ctx.fillText(`スコア: ${score}`, canvas.width / 2 - 70, canvas.height / 2);
+        ctx.fillStyle = 'green';
+        ctx.fillRect(canvas.width / 2 - 80, canvas.height / 2 + 50, 160, 50);
+        ctx.fillStyle = 'white';
+        ctx.fillText(`もう一回`, canvas.width / 2 - 50, canvas.height / 2 + 80);
+      }
+    }
+
+    // ゲームループ
+    function gameLoop() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+      if (isTouching) {
+        spawnBubble();
+        updateBubbles();
+        checkCollisions();
+        adjustDifficulty();
+      }
+
+      drawCharacter();
+      drawBubbles();
+      drawScore();
+      drawGameOver();
+
+      requestAnimationFrame(gameLoop);
+    }
+
+    characterImg.onload = () => {
+      gameLoop();
+    };
+  </script>
+</body>
+</html>
