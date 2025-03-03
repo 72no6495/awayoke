@@ -20,12 +20,12 @@
 </head>
 <body>
   <canvas id="gameCanvas" width="400" height="600"></canvas>
-  <audio id="bgm" src="Aphex Twin - Rhubarb.m4a" loop></audio> <!-- BGM追加 -->
+  <audio id="bgm" src="Aphex Twin - Rhubarb.m4a" loop></audio>
 
   <script>
     const canvas = document.getElementById('gameCanvas');
     const ctx = canvas.getContext('2d');
-    const bgm = document.getElementById('bgm'); // BGM要素を取得
+    const bgm = document.getElementById('bgm');
 
     const characterImg = new Image();
     characterImg.src = 'profile.jpg';
@@ -37,7 +37,7 @@
     };
 
     let bubbles = [];
-    let bullets = []; // 緑の玉を管理する配列
+    let bullets = [];
     let bubbleSpawnRate = 100;
     let frameCount = 0;
     let score = 0;
@@ -49,7 +49,7 @@
 
     canvas.addEventListener('touchstart', (e) => {
       e.preventDefault();
-      if (gameOverState) return; // ゲームオーバー時は操作不可
+      if (gameOverState) return;
       let touchX = e.touches[0].clientX - canvas.offsetLeft;
       let touchY = e.touches[0].clientY - canvas.offsetTop;
 
@@ -75,7 +75,7 @@
 
     canvas.addEventListener('touchmove', (e) => {
       e.preventDefault();
-      if (gameOverState) return; // ゲームオーバー時は操作不可
+      if (gameOverState) return;
       if (gameState === 'playing') {
         moveCharacter(e.touches[0]);
       }
@@ -89,8 +89,14 @@
     });
 
     function moveCharacter(touch) {
-      character.x = touch.clientX - canvas.offsetLeft;
-      character.y = touch.clientY - canvas.offsetTop;
+      const offsetX = 50;
+      const offsetY = 50;
+      let newX = touch.clientX - canvas.offsetLeft - offsetX;
+      let newY = touch.clientY - canvas.offsetTop - offsetY;
+
+      // キャンバスの境界内に制限
+      character.x = Math.max(character.radius, Math.min(canvas.width - character.radius, newX));
+      character.y = Math.max(character.radius, Math.min(canvas.height - character.radius, newY));
     }
 
     function startCountdown() {
@@ -99,7 +105,7 @@
         if (countdown <= 0) {
           clearInterval(countdownTimer);
           gameState = 'playing';
-          bgm.play(); // ゲーム開始時にBGM再生
+          bgm.play();
           startScoreTimer();
         }
       }, 1000);
@@ -116,7 +122,7 @@
     }
 
     function spawnBubble() {
-      if (Math.random() < 0.1) { // 金の泡（10%の確率）
+      if (Math.random() < 0.1) {
         bubbles.push({
           x: Math.random() * canvas.width,
           y: -20,
@@ -157,7 +163,7 @@
           if (b.isGoldenBubble) {
             score += 200;
             bubbles.splice(index, 1);
-            fireBullets(); // 緑の玉を発射
+            fireBullets();
           } else {
             gameOver();
           }
@@ -167,14 +173,14 @@
 
     function fireBullets() {
       const directions = [
-        { dx: 0, dy: -1 }, // 上
-        { dx: 1, dy: -1 }, // 右上
-        { dx: 1, dy: 0 }, // 右
-        { dx: 1, dy: 1 }, // 右下
-        { dx: 0, dy: 1 }, // 下
-        { dx: -1, dy: 1 }, // 左下
-        { dx: -1, dy: 0 }, // 左
-        { dx: -1, dy: -1 } // 左上
+        { dx: 0, dy: -1 },
+        { dx: 1, dy: -1 },
+        { dx: 1, dy: 0 },
+        { dx: 1, dy: 1 },
+        { dx: 0, dy: 1 },
+        { dx: -1, dy: 1 },
+        { dx: -1, dy: 0 },
+        { dx: -1, dy: -1 }
       ];
       directions.forEach(dir => {
         bullets.push({
@@ -227,8 +233,8 @@
         gameOverState = true;
         isTouching = false;
         clearInterval(scoreTimer);
-        bgm.pause(); // ゲームオーバーでBGM停止
-        bgm.currentTime = 0; // 次回再生時に最初から
+        bgm.pause();
+        bgm.currentTime = 0;
       }
     }
 
@@ -302,7 +308,7 @@
           spawnBubble();
         }
         updateBubbles();
-        updateBullets(); // 緑の玉の更新
+        updateBullets();
         checkCollisions();
         adjustDifficulty();
       }
@@ -310,7 +316,7 @@
       if (gameState === 'playing' || gameOverState) {
         drawCharacter();
         drawBubbles();
-        drawBullets(); // 緑の玉の描画
+        drawBullets();
         drawScore();
       }
 
