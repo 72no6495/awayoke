@@ -37,6 +37,7 @@
     };
 
     let bubbles = [];
+    let bullets = []; // 緑の玉を管理する配列
     let bubbleSpawnRate = 100;
     let frameCount = 0;
     let score = 0;
@@ -48,6 +49,7 @@
 
     canvas.addEventListener('touchstart', (e) => {
       e.preventDefault();
+      if (gameOverState) return; // ゲームオーバー時は操作不可
       let touchX = e.touches[0].clientX - canvas.offsetLeft;
       let touchY = e.touches[0].clientY - canvas.offsetTop;
 
@@ -73,6 +75,7 @@
 
     canvas.addEventListener('touchmove', (e) => {
       e.preventDefault();
+      if (gameOverState) return; // ゲームオーバー時は操作不可
       if (gameState === 'playing') {
         moveCharacter(e.touches[0]);
       }
@@ -154,10 +157,64 @@
           if (b.isGoldenBubble) {
             score += 200;
             bubbles.splice(index, 1);
+            fireBullets(); // 緑の玉を発射
           } else {
             gameOver();
           }
         }
+      });
+    }
+
+    function fireBullets() {
+      const directions = [
+        { dx: 0, dy: -1 }, // 上
+        { dx: 1, dy: -1 }, // 右上
+        { dx: 1, dy: 0 }, // 右
+        { dx: 1, dy: 1 }, // 右下
+        { dx: 0, dy: 1 }, // 下
+        { dx: -1, dy: 1 }, // 左下
+        { dx: -1, dy: 0 }, // 左
+        { dx: -1, dy: -1 } // 左上
+      ];
+      directions.forEach(dir => {
+        bullets.push({
+          x: character.x,
+          y: character.y,
+          speedX: dir.dx * 5,
+          speedY: dir.dy * 5,
+          radius: 5
+        });
+      });
+    }
+
+    function updateBullets() {
+      for (let i = bullets.length - 1; i >= 0; i--) {
+        let bullet = bullets[i];
+        bullet.x += bullet.speedX;
+        bullet.y += bullet.speedY;
+        if (bullet.x < 0 || bullet.x > canvas.width || bullet.y < 0 || bullet.y > canvas.height) {
+          bullets.splice(i, 1);
+        } else {
+          bubbles.forEach((b, bIndex) => {
+            let dx = bullet.x - b.x;
+            let dy = bullet.y - b.y;
+            let distance = Math.sqrt(dx * dx + dy * dy);
+            if (distance < bullet.radius + b.radius) {
+              bubbles.splice(bIndex, 1);
+              bullets.splice(i, 1);
+              return;
+            }
+          });
+        }
+      }
+    }
+
+    function drawBullets() {
+      bullets.forEach(bullet => {
+        ctx.beginPath();
+        ctx.arc(bullet.x, bullet.y, bullet.radius, 0, Math.PI * 2);
+        ctx.fillStyle = 'green';
+        ctx.fill();
       });
     }
 
@@ -245,6 +302,7 @@
           spawnBubble();
         }
         updateBubbles();
+        updateBullets(); // 緑の玉の更新
         checkCollisions();
         adjustDifficulty();
       }
@@ -252,6 +310,7 @@
       if (gameState === 'playing' || gameOverState) {
         drawCharacter();
         drawBubbles();
+        drawBullets(); // 緑の玉の描画
         drawScore();
       }
 
