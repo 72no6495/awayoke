@@ -94,7 +94,6 @@
       let newX = touch.clientX - canvas.offsetLeft - offsetX;
       let newY = touch.clientY - canvas.offsetTop - offsetY;
 
-      // キャンバスの境界内に制限
       character.x = Math.max(character.radius, Math.min(canvas.width - character.radius, newX));
       character.y = Math.max(character.radius, Math.min(canvas.height - character.radius, newY));
     }
@@ -171,26 +170,53 @@
       });
     }
 
-    function fireBullets() {
-      const directions = [
-        { dx: 0, dy: -1 },
-        { dx: 1, dy: -1 },
-        { dx: 1, dy: 0 },
-        { dx: 1, dy: 1 },
-        { dx: 0, dy: 1 },
-        { dx: -1, dy: 1 },
-        { dx: -1, dy: 0 },
-        { dx: -1, dy: -1 }
-      ];
-      directions.forEach(dir => {
+    function findClosestBubble() {
+      let closestBubble = null;
+      let minDistance = Infinity;
+
+      bubbles.forEach(b => {
+        if (!b.isGoldenBubble) {
+          let dx = character.x - b.x;
+          let dy = character.y - b.y;
+          let distance = Math.sqrt(dx * dx + dy * dy);
+          if (distance < minDistance) {
+            minDistance = distance;
+            closestBubble = b;
+          }
+        }
+      });
+
+      return closestBubble;
+    }
+
+    function shootBullet() {
+      const closestBubble = findClosestBubble();
+      if (closestBubble) {
+        let dx = closestBubble.x - character.x;
+        let dy = closestBubble.y - character.y;
+        let distance = Math.sqrt(dx * dx + dy * dy);
+        let speed = 5;
+
         bullets.push({
           x: character.x,
           y: character.y,
-          speedX: dir.dx * 5,
-          speedY: dir.dy * 5,
-          radius: 5
+          speedX: (dx / distance) * speed,
+          speedY: (dy / distance) * speed,
+          radius: 6
         });
-      });
+      }
+    }
+
+    function fireBullets() {
+      let shots = 0;
+      const interval = setInterval(() => {
+        if (shots < 8) {
+          shootBullet();
+          shots++;
+        } else {
+          clearInterval(interval);
+        }
+      }, 300); // 300ms間隔で連射
     }
 
     function updateBullets() {
@@ -202,6 +228,7 @@
           bullets.splice(i, 1);
         } else {
           bubbles.forEach((b, bIndex) => {
+            if (b.isGoldenBubble) return;
             let dx = bullet.x - b.x;
             let dy = bullet.y - b.y;
             let distance = Math.sqrt(dx * dx + dy * dy);
@@ -326,8 +353,14 @@
     }
 
     characterImg.onload = () => {
+      console.log("画像の読み込みが完了しました");
       gameLoop();
     };
+    characterImg.onerror = () => {
+      console.error("画像の読み込みに失敗しました: profile.jpg");
+      gameLoop();
+    };
+    gameLoop();
   </script>
 </body>
 </html>
