@@ -169,6 +169,7 @@
     }
 
     function checkCollisions() {
+      if (gameOverState) return; // ゲームオーバー時は衝突判定をスキップ
       bubbles.forEach((b, index) => {
         let dx = character.x - b.x;
         let dy = character.y - b.y;
