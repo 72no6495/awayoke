@@ -11,7 +11,7 @@
       align-items: center;
       height: 100vh;
       margin: 0;
-      background-color: #fbfdfd; 
+      background: linear-gradient(to bottom, #ffe6f0, #f0e6ff);
     }
     canvas {
       border: 1px solid black;
@@ -33,7 +33,9 @@
     let character = {
       x: canvas.width / 2,
       y: canvas.height / 2,
-      radius: 20
+      radius: 20,
+      targetX: canvas.width / 2,
+      targetY: canvas.height / 2
     };
 
     let bubbles = [];
@@ -69,7 +71,7 @@
         }
       } else if (gameState === 'playing') {
         isTouching = true;
-        moveCharacter(e.touches[0]);
+        updateTargetPosition(e.touches[0]);
       }
     });
 
@@ -77,25 +79,38 @@
       e.preventDefault();
       if (gameOverState) return;
       if (gameState === 'playing') {
-        moveCharacter(e.touches[0]);
+        updateTargetPosition(e.touches[0]);
       }
     });
 
     canvas.addEventListener('touchend', () => {
       if (gameState === 'playing') {
         isTouching = false;
-        gameOver();
       }
     });
 
-    function moveCharacter(touch) {
+    function updateTargetPosition(touch) {
       const offsetX = 50;
       const offsetY = 50;
       let newX = touch.clientX - canvas.offsetLeft - offsetX;
       let newY = touch.clientY - canvas.offsetTop - offsetY;
+      character.targetX = Math.max(character.radius, Math.min(canvas.width - character.radius, newX));
+      character.targetY = Math.max(character.radius, Math.min(canvas.height - character.radius, newY));
+    }
 
-      character.x = Math.max(character.radius, Math.min(canvas.width - character.radius, newX));
-      character.y = Math.max(character.radius, Math.min(canvas.height - character.radius, newY));
+    function moveCharacter() {
+      const speed = 5; // スライド速度
+      let dx = character.targetX - character.x;
+      let dy = character.targetY - character.y;
+      let distance = Math.sqrt(dx * dx + dy * dy);
+      
+      if (distance > speed) {
+        character.x += (dx / distance) * speed;
+        character.y += (dy / distance) * speed;
+      } else {
+        character.x = character.targetX;
+        character.y = character.targetY;
+      }
     }
 
     function startCountdown() {
@@ -114,20 +129,20 @@
     function startScoreTimer() {
       if (scoreTimer) clearInterval(scoreTimer);
       scoreTimer = setInterval(() => {
-        if (gameState === 'playing' && isTouching) {
+        if (gameState === 'playing') {
           score += 10;
         }
       }, 1000);
     }
 
     function spawnBubble() {
-      if (Math.random() < 0.1) {
+      if (Math.random() < 0.125) { // 8分の1の確率
         bubbles.push({
           x: Math.random() * canvas.width,
           y: -20,
           radius: 15,
-          speedX: Math.random() * 2 - 1,
-          speedY: 1,
+          speedX: Math.random() * 0.5 - 0.25,
+          speedY: 0.5,
           isGoldenBubble: true
         });
       } else {
@@ -135,8 +150,8 @@
           x: Math.random() * canvas.width,
           y: -20,
           radius: 15,
-          speedX: Math.random() * 2 - 1,
-          speedY: 1,
+          speedX: Math.random() * 0.5 - 0.25,
+          speedY: 0.5,
           isGoldenBubble: false
         });
       }
@@ -145,7 +160,7 @@
     function updateBubbles() {
       for (let i = bubbles.length - 1; i >= 0; i--) {
         let b = bubbles[i];
-        b.x += b.speedX + Math.sin(Date.now() * 0.001) * 2;
+        b.x += b.speedX + Math.sin(Date.now() * 0.001) * 1;
         b.y += b.speedY;
         if (b.y > canvas.height + b.radius) {
           bubbles.splice(i, 1);
@@ -216,7 +231,7 @@
         } else {
           clearInterval(interval);
         }
-      }, 300); // 300ms間隔で連射
+      }, 300);
     }
 
     function updateBullets() {
@@ -258,7 +273,6 @@
     function gameOver() {
       if (!gameOverState) {
         gameOverState = true;
-        isTouching = false;
         clearInterval(scoreTimer);
         bgm.pause();
         bgm.currentTime = 0;
@@ -305,9 +319,9 @@
         ctx.font = '20px Arial';
         ctx.fillText('遊び方', canvas.width / 2 - 30, canvas.height / 2 - 100);
         ctx.fillText('1. スタートを押してゲーム開始', canvas.width / 2 - 150, canvas.height / 2 - 50);
-        ctx.fillText('2. タッチでキャラクターを動かす', canvas.width / 2 - 150, canvas.height / 2 - 20);
-        ctx.fillText('3. 泡を避け、金の泡を取る', canvas.width / 2 - 150, canvas.height / 2 + 10);
-        ctx.fillText('4. 泡に当たるか指を離すとゲームオーバー', canvas.width / 2 - 150, canvas.height / 2 + 40);
+        ctx.fillText('2. 指を動かしてキャラを操作', canvas.width / 2 - 150, canvas.height / 2 - 20);
+        ctx.fillText('3. 青い泡を避け、金の泡を取る', canvas.width / 2 - 150, canvas.height / 2 + 10);
+        ctx.fillText('4. 青い泡に当たるとゲームオーバー', canvas.width / 2 - 150, canvas.height / 2 + 40);
         ctx.fillStyle = 'red';
         ctx.fillRect(canvas.width / 2 - 50, canvas.height / 2 + 100, 100, 50);
         ctx.fillStyle = 'white';
@@ -330,10 +344,11 @@
       ctx.clearRect(0, 0, canvas.width, canvas.height);
       frameCount++;
 
-      if (gameState === 'playing' && isTouching) {
+      if (gameState === 'playing') {
         if (frameCount % bubbleSpawnRate === 0) {
           spawnBubble();
         }
+        moveCharacter();
         updateBubbles();
         updateBullets();
         checkCollisions();
